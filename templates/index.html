@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>DAG Drawing App</h1>
+    <div id="graph"></div>
+    <div class="controls">
+        <input type="text" id="project-name" placeholder="Project Name">
+        <button id="save-project">Save Project</button>
+        <input type="text" id="node-label" placeholder="Node Label">
+        <button id="add-node">Add Node</button>
+        <button id="add-edge">Add Edge</button>
+        <button id="remove-selected">Remove Selected</button>
+        <button id="clear-all">Clear All</button>
+        <button id="show-statistics">Show Statistics</button>
+    </div>
+    <div id="projects-list"></div>
+    <div id="suggested-nodes-list"></div>
+    <div id="statistics-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Graph Statistics</h2>
+            <ul id="statistics-list"></ul>
+        </div>
+    </div>
+{% endblock %}
