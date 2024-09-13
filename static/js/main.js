@@ -71,20 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(response => response.json())
         .then(projects => {
             projectsList.innerHTML = '<h2>Your Projects</h2>';
-            const ul = document.createElement('ul');
             projects.forEach(project => {
-                const li = document.createElement('li');
-                li.textContent = project.name;
-                li.addEventListener('click', () => {
+                const button = document.createElement('button');
+                button.textContent = project.name;
+                button.addEventListener('click', () => {
                     nodes.clear();
                     edges.clear();
                     nodes.add(project.content.nodes);
                     edges.add(project.content.edges);
                     projectNameInput.value = project.name;
                 });
-                ul.appendChild(li);
+                projectsList.appendChild(button);
             });
-            projectsList.appendChild(ul);
         })
         .catch(error => console.error('Error:', error));
     }
@@ -93,15 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/get_node_suggestions')
         .then(response => response.json())
         .then(data => {
-            suggestedNodesList.innerHTML = '';
+            suggestedNodesList.innerHTML = '<h3>Suggested Nodes</h3>';
             data.nodes.forEach(node => {
-                const div = document.createElement('div');
-                div.textContent = node.label;
-                div.title = node.annotation;
-                div.addEventListener('click', () => {
+                const button = document.createElement('button');
+                button.textContent = node.label;
+                button.title = node.annotation;
+                button.addEventListener('click', () => {
                     nodes.add({ label: node.label, title: node.annotation });
                 });
-                suggestedNodesList.appendChild(div);
+                suggestedNodesList.appendChild(button);
             });
         })
         .catch(error => console.error('Error:', error));
