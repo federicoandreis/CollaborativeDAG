@@ -168,3 +168,51 @@ nav ul li a {
 #instructions:hover {
     background-color: #007B9A;
 }
+
+/* Admin dashboard styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.toggle-admin, .delete-user {
+    padding: 5px 10px;
+    margin-right: 5px;
+    cursor: pointer;
+    border: none;
+    border-radius: 3px;
+}
+
+.toggle-admin {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.toggle-admin:hover {
+    background-color: #45a049;
+}
+
+.delete-user {
+    background-color: #f44336;
+    color: white;
+}
+
+.delete-user:hover {
+    background-color: #d32f2f;
+}
