@@ -7,7 +7,7 @@ db = SQLAlchemy()
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
-    password_hash = db.Column(db.String(255))  # Changed from 128 to 255
+    password_hash = db.Column(db.String(255))
     is_admin = db.Column(db.Boolean, default=False)
     projects = db.relationship('Project', backref='author', lazy='dynamic')
 

@@ -75,11 +75,43 @@ def get_projects():
 @app.route('/admin')
 @login_required
 def admin():
+    print(f'Current user admin status: {current_user.is_admin}')
     if not current_user.is_admin:
         flash('Access denied')
         return redirect(url_for('index'))
     users = User.query.all()
-    return render_template('admin.html', users=users)
+    projects = Project.query.all()
+    return render_template('admin.html', users=users, projects=projects)
+
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        flash(f'User {user.username} deleted successfully')
+    else:
+        flash('User not found')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/delete_project/<int:project_id>', methods=['POST'])
+@login_required
+def delete_project(project_id):
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    project = Project.query.get(project_id)
+    if project:
+        db.session.delete(project)
+        db.session.commit()
+        flash(f'Project {project.name} deleted successfully')
+    else:
+        flash('Project not found')
+    return redirect(url_for('admin'))
 
 @app.route('/get_node_suggestions')
 @login_required
@@ -115,6 +147,14 @@ def import_graph():
         except json.JSONDecodeError:
             return jsonify({'success': False, 'error': 'Invalid JSON file'})
     return jsonify({'success': False, 'error': 'Invalid file type'})
+
+@app.route('/make_admin')
+@login_required
+def make_admin():
+    current_user.is_admin = True
+    db.session.commit()
+    flash('You are now an admin.')
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     with app.app_context():
