@@ -88,6 +88,34 @@ def get_node_suggestions():
         suggestions = json.load(f)
     return jsonify(suggestions)
 
+@app.route('/export_graph', methods=['POST'])
+@login_required
+def export_graph():
+    data = request.json
+    json_data = json.dumps(data, indent=2)
+    return send_file(
+        BytesIO(json_data.encode()),
+        mimetype='application/json',
+        as_attachment=True,
+        download_name='graph_export.json'
+    )
+
+@app.route('/import_graph', methods=['POST'])
+@login_required
+def import_graph():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file part'})
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No selected file'})
+    if file and file.filename.endswith('.json'):
+        try:
+            content = json.loads(file.read().decode('utf-8'))
+            return jsonify({'success': True, 'content': content})
+        except json.JSONDecodeError:
+            return jsonify({'success': False, 'error': 'Invalid JSON file'})
+    return jsonify({'success': False, 'error': 'Invalid file type'})
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

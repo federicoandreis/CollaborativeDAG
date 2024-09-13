@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeSelectedBtn = document.getElementById('remove-selected');
     const clearAllBtn = document.getElementById('clear-all');
     const suggestedNodesList = document.getElementById('suggested-nodes-list');
+    const exportGraphBtn = document.getElementById('export-graph');
+    const importGraphInput = document.getElementById('import-graph');
 
     let nodes = new vis.DataSet();
     let edges = new vis.DataSet();
@@ -105,6 +107,59 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => console.error('Error:', error));
     }
 
+    function exportGraph() {
+        const graphData = {
+            nodes: nodes.get(),
+            edges: edges.get()
+        };
+
+        fetch('/export_graph', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(graphData),
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'graph_export.json';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function importGraph(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/import_graph', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    nodes.clear();
+                    edges.clear();
+                    nodes.add(data.content.nodes);
+                    edges.add(data.content.edges);
+                    alert('Graph imported successfully');
+                } else {
+                    alert('Error importing graph: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    }
+
     saveProjectBtn.addEventListener('click', saveProject);
 
     addNodeBtn.addEventListener('click', () => {
@@ -128,6 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
         nodes.clear();
         edges.clear();
     });
+
+    exportGraphBtn.addEventListener('click', exportGraph);
+    importGraphInput.addEventListener('change', importGraph);
 
     // Right-click annotation functionality
     network.on("oncontext", function (params) {
