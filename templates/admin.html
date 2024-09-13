@@ -61,5 +61,15 @@
     </table>
 
     <h2>Export All Projects</h2>
-    <a href="{{ url_for('export_all_projects') }}" class="button">Export All Projects as JSON</a>
+    <a href="{{ url_for('export_all_projects') }}" class="button">
+        <button type="button">Export All Projects as JSON</button>
+    </a>
+
+    <h2>Import Projects</h2>
+    <form action="{{ url_for('import_projects') }}" method="POST" enctype="multipart/form-data">
+        <input type="file" name="json_file" accept=".json" required>
+        <button type="submit">Import Projects</button>
+    </form>
+    <p>Note: You can import a single project or multiple projects. The file should be in JSON format.</p>
+
 {% endblock %}

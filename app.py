@@ -184,6 +184,58 @@ def export_all_projects():
         download_name='all_projects_export.json'
     )
 
+@app.route('/admin/import_projects', methods=['POST'])
+@login_required
+def import_projects():
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+
+    if 'json_file' not in request.files:
+        flash('No file part')
+        return redirect(url_for('admin'))
+
+    file = request.files['json_file']
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(url_for('admin'))
+
+    if file and file.filename.endswith('.json'):
+        try:
+            content = json.loads(file.read().decode('utf-8'))
+            imported_count = 0
+            
+            # Check if it's a single project or multiple projects
+            if isinstance(content, dict) and 'nodes' in content and 'edges' in content:
+                # Single project import
+                project_name = file.filename.rsplit('.', 1)[0]
+                imported_count = import_single_project(current_user.id, project_name, content)
+            else:
+                # Multiple projects import
+                for project_name, project_data in content.items():
+                    imported_count += import_single_project(current_user.id, project_name, project_data)
+            
+            flash(f'Successfully imported {imported_count} project(s)')
+        except json.JSONDecodeError:
+            flash('Invalid JSON file')
+        except Exception as e:
+            flash(f'Error importing projects: {str(e)}')
+    else:
+        flash('Invalid file type')
+
+    return redirect(url_for('admin'))
+
+def import_single_project(user_id, project_name, project_data):
+    existing_project = Project.query.filter_by(user_id=user_id, name=project_name).first()
+    if existing_project:
+        existing_project.content = json.dumps(project_data)
+        db.session.commit()
+    else:
+        new_project = Project(user_id=user_id, name=project_name, content=json.dumps(project_data))
+        db.session.add(new_project)
+        db.session.commit()
+    return 1
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
