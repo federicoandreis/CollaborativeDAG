@@ -2,25 +2,31 @@
 
 {% block content %}
     <h1>DAG Drawing App</h1>
-    <div id="graph"></div>
-    <div class="controls">
-        <input type="text" id="project-name" placeholder="Project Name">
-        <button id="save-project">Save Project</button>
-        <input type="text" id="node-label" placeholder="Node Label">
-        <button id="add-node">Add Node</button>
-        <button id="add-edge">Add Edge</button>
-        <button id="remove-selected">Remove Selected</button>
-        <button id="clear-all">Clear All</button>
-        <button id="export-graph">Export Graph</button>
-        <input type="file" id="import-graph" accept=".json">
-        <label for="import-graph">Import Graph</label>
-    </div>
-    <div id="projects-list">
-        <h2>Your Projects</h2>
-        <!-- Projects will be dynamically added here -->
-    </div>
-    <div id="suggested-nodes-list">
-        <h3>Suggested Nodes</h3>
-        <!-- Suggested nodes will be dynamically added here -->
+    <div class="app-container">
+        <div class="main-content">
+            <div id="graph"></div>
+            <div class="controls">
+                <input type="text" id="project-name" placeholder="Project Name">
+                <button id="save-project">Save Project</button>
+                <input type="text" id="node-label" placeholder="Node Label">
+                <button id="add-node">Add Node</button>
+                <button id="add-edge">Add Edge</button>
+                <button id="remove-selected">Remove Selected</button>
+                <button id="clear-all">Clear All</button>
+                <button id="export-graph">Export Graph</button>
+                <input type="file" id="import-graph" accept=".json">
+                <button id="import-graph">Import Graph</button>
+            </div>
+        </div>
+        <div class="side-panel">
+            <h3>Suggested Nodes</h3>
+            <div id="suggested-nodes-list">
+                <!-- Suggested nodes will be dynamically added here -->
+            </div>
+            <h3>Your Projects</h3>
+            <div id="projects-list">
+                <!-- Projects will be dynamically added here -->
+            </div>
+        </div>
     </div>
 {% endblock %}

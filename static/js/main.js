@@ -69,8 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadProjects() {
         fetch('/get_projects')
         .then(response => response.json())
-        .then(projects => {
-            projectsList.innerHTML = '<h2>Your Projects</h2>';
+        .then(projects => {            
             projects.forEach(project => {
                 const button = document.createElement('button');
                 button.textContent = project.name;
@@ -90,8 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadSuggestedNodes() {
         fetch('/get_node_suggestions')
         .then(response => response.json())
-        .then(data => {
-            suggestedNodesList.innerHTML = '<h3>Suggested Nodes</h3>';
+        .then(data => {            
             data.nodes.forEach(node => {
                 const button = document.createElement('button');
                 button.textContent = node.label;
