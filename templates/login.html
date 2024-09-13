@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="main-content">
     <h1>Login</h1>
-    <form method="POST">
+    <form method="POST" class="login-form">
         <div>
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>
@@ -13,4 +14,9 @@
         </div>
         <button type="submit">Login</button>
     </form>
+</div>
+<div class="sidebar">
+    <h2>Welcome</h2>
+    <p>Please log in to access the DAG Drawing App.</p>
+</div>
 {% endblock %}
