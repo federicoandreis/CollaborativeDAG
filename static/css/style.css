@@ -38,7 +38,7 @@ nav ul li a {
 
 .app-container {
     display: flex;
-    height: calc(100vh - 100px); /* Adjust based on your header/nav height */
+    height: calc(100vh - 100px);
 }
 
 .main-content {
@@ -51,7 +51,7 @@ nav ul li a {
 #graph {
     flex: 1;
     border: 1px solid #ddd;
-    min-height: 400px; /* Set a minimum height to prevent collapse */
+    min-height: 400px;
 }
 
 .controls {
@@ -69,10 +69,10 @@ nav ul li a {
 }
 
 #suggested-nodes-list, #projects-list {
-    height: 250px; /* Adjusted height to accommodate titles */
+    height: 250px;
     overflow-y: auto;
     margin-bottom: 20px;
-    padding-top: 10px; /* Added padding-top */
+    padding-top: 10px;
 }
 
 .side-panel h3 {
@@ -122,4 +122,49 @@ nav ul li a {
 
 .controls input[type="file"] + label:hover {
     background-color: #e0e0e0;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#instructions {
+    background-color: #008CBA;
+    color: white;
+}
+
+#instructions:hover {
+    background-color: #007B9A;
 }

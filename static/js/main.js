@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestedNodesList = document.getElementById('suggested-nodes-list');
     const exportGraphBtn = document.getElementById('export-graph');
     const importGraphInput = document.getElementById('import-graph');
+    const importGraphBtn = document.getElementById('import-graph-btn');
+    const instructionsBtn = document.getElementById('instructions');
+    const instructionsModal = document.getElementById('instructions-modal');
+    const closeModalBtn = document.getElementsByClassName('close')[0];
 
     let nodes = new vis.DataSet();
     let edges = new vis.DataSet();
@@ -69,7 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadProjects() {
         fetch('/get_projects')
         .then(response => response.json())
-        .then(projects => {            
+        .then(projects => {
+            projectsList.innerHTML = '';
             projects.forEach(project => {
                 const button = document.createElement('button');
                 button.textContent = project.name;
@@ -89,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadSuggestedNodes() {
         fetch('/get_node_suggestions')
         .then(response => response.json())
-        .then(data => {            
+        .then(data => {
+            suggestedNodesList.innerHTML = '';
             data.nodes.forEach(node => {
                 const button = document.createElement('button');
                 button.textContent = node.label;
@@ -131,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function importGraph(event) {
-        const file = event.target.files[0];
+        const file = importGraphInput.files[0];
         if (file) {
             const formData = new FormData();
             formData.append('file', file);
@@ -181,7 +187,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     exportGraphBtn.addEventListener('click', exportGraph);
+    importGraphBtn.addEventListener('click', () => importGraphInput.click());
     importGraphInput.addEventListener('change', importGraph);
+
+    // Instructions modal functionality
+    instructionsBtn.addEventListener('click', () => {
+        instructionsModal.style.display = 'block';
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+        instructionsModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == instructionsModal) {
+            instructionsModal.style.display = 'none';
+        }
+    });
 
     // Right-click annotation functionality
     network.on("oncontext", function (params) {

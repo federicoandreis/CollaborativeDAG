@@ -8,6 +8,7 @@
             <div class="controls">
                 <input type="text" id="project-name" placeholder="Project Name">
                 <button id="save-project">Save Project</button>
+                <button id="instructions">Instructions</button>
                 <input type="text" id="node-label" placeholder="Node Label">
                 <button id="add-node">Add Node</button>
                 <button id="add-edge">Add Edge</button>
@@ -15,7 +16,8 @@
                 <button id="clear-all">Clear All</button>
                 <button id="export-graph">Export Graph</button>
                 <input type="file" id="import-graph" accept=".json">
-                <button id="import-graph">Import Graph</button>
+                <button id="import-graph-btn">Import Graph</button>
+                
             </div>
         </div>
         <div class="side-panel">
@@ -27,6 +29,24 @@
             <div id="projects-list">
                 <!-- Projects will be dynamically added here -->
             </div>
+        </div>
+    </div>
+    
+    <!-- Instructions Modal -->
+    <div id="instructions-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Instructions</h2>
+            <ul>
+                <li>To add a node: Enter a label and click "Add Node" or use a suggested node.</li>
+                <li>To add an edge: Click "Add Edge", then click on the source node and drag to the target node.</li>
+                <li>To remove elements: Select nodes/edges and click "Remove Selected".</li>
+                <li>To save your project: Enter a project name and click "Save Project".</li>
+                <li>To load a project: Click on a project name in the "Your Projects" list.</li>
+                <li>To export your graph: Click "Export Graph" to download a JSON file.</li>
+                <li>To import a graph: Click "Choose File", select a JSON file, then click "Import Graph".</li>
+                <li>To add annotations: Right-click on a node and enter the annotation text.</li>
+            </ul>
         </div>
     </div>
 {% endblock %}
