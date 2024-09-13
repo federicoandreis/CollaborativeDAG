@@ -1,11 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="main-content">
     <h1>DAG Drawing App</h1>
-    <div class="graph-container">
-        <div id="graph"></div>
-    </div>
+    <div id="graph"></div>
     <div class="controls">
         <input type="text" id="project-name" placeholder="Project Name">
         <button id="save-project">Save Project</button>
@@ -18,15 +15,6 @@
         <input type="file" id="import-graph" accept=".json">
         <label for="import-graph">Import Graph</label>
     </div>
-</div>
-<div class="sidebar">
-    <div id="suggested-nodes">
-        <h2>Suggested Nodes</h2>
-        <div id="suggested-nodes-list"></div>
-    </div>
-    <div id="projects">
-        <h2>Your Projects</h2>
-        <div id="projects-list"></div>
-    </div>
-</div>
+    <div id="projects-list"></div>
+    <div id="suggested-nodes-list"></div>
 {% endblock %}
