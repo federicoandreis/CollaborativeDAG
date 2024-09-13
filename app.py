@@ -162,6 +162,28 @@ def import_graph():
             return jsonify({'success': False, 'error': 'Invalid JSON file'})
     return jsonify({'success': False, 'error': 'Invalid file type'})
 
+@app.route('/admin/export_all_projects')
+@login_required
+def export_all_projects():
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    all_projects = Project.query.all()
+    projects_data = {}
+    
+    for project in all_projects:
+        projects_data[f"{project.author.username}_{project.name}"] = json.loads(project.content)
+    
+    json_data = json.dumps(projects_data, indent=2)
+    
+    return send_file(
+        BytesIO(json_data.encode()),
+        mimetype='application/json',
+        as_attachment=True,
+        download_name='all_projects_export.json'
+    )
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
