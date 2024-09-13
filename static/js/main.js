@@ -8,10 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const addEdgeBtn = document.getElementById('add-edge');
     const removeSelectedBtn = document.getElementById('remove-selected');
     const clearAllBtn = document.getElementById('clear-all');
-    const showStatisticsBtn = document.getElementById('show-statistics');
-    const statisticsModal = document.getElementById('statistics-modal');
-    const closeStatisticsModal = statisticsModal.getElementsByClassName('close')[0];
-    const statisticsList = document.getElementById('statistics-list');
     const suggestedNodesList = document.getElementById('suggested-nodes-list');
 
     let nodes = new vis.DataSet();
@@ -131,53 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
     clearAllBtn.addEventListener('click', () => {
         nodes.clear();
         edges.clear();
-    });
-
-    showStatisticsBtn.addEventListener('click', () => {
-        const graphData = {
-            nodes: nodes.get(),
-            edges: edges.get()
-        };
-
-        fetch('/graph_statistics', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(graphData),
-        })
-        .then(response => response.json())
-        .then(stats => {
-            statisticsList.innerHTML = '';
-            for (const [key, value] of Object.entries(stats)) {
-                const li = document.createElement('li');
-                if (typeof value === 'object') {
-                    li.textContent = `${key}:`;
-                    const ul = document.createElement('ul');
-                    for (const [subKey, subValue] of Object.entries(value)) {
-                        const subLi = document.createElement('li');
-                        subLi.textContent = `${subKey}: ${subValue.toFixed(4)}`;
-                        ul.appendChild(subLi);
-                    }
-                    li.appendChild(ul);
-                } else {
-                    li.textContent = `${key}: ${value}`;
-                }
-                statisticsList.appendChild(li);
-            }
-            statisticsModal.style.display = 'block';
-        })
-        .catch(error => console.error('Error:', error));
-    });
-
-    closeStatisticsModal.addEventListener('click', () => {
-        statisticsModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target == statisticsModal) {
-            statisticsModal.style.display = 'none';
-        }
     });
 
     // Right-click annotation functionality

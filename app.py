@@ -6,7 +6,6 @@ from config import Config
 import os
 import json
 from io import BytesIO
-import networkx as nx
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -81,39 +80,6 @@ def admin():
         return redirect(url_for('index'))
     users = User.query.all()
     return render_template('admin.html', users=users)
-
-@app.route('/graph_statistics', methods=['POST'])
-@login_required
-def graph_statistics():
-    data = request.json
-    nodes = data.get('nodes', [])
-    edges = data.get('edges', [])
-
-    G = nx.DiGraph()
-    for node in nodes:
-        G.add_node(node['id'])
-    for edge in edges:
-        G.add_edge(edge['from'], edge['to'])
-
-    stats = {
-        'num_nodes': G.number_of_nodes(),
-        'num_edges': G.number_of_edges(),
-        'avg_degree': sum(dict(G.degree()).values()) / G.number_of_nodes() if G.number_of_nodes() > 0 else 0,
-        'is_dag': nx.is_directed_acyclic_graph(G),
-        'connected_components': nx.number_connected_components(G.to_undirected()),
-        'strongly_connected_components': nx.number_strongly_connected_components(G),
-    }
-
-    if stats['is_dag']:
-        longest_path = nx.dag_longest_path(G)
-        stats['longest_path_length'] = len(longest_path) - 1
-        stats['longest_path_nodes'] = [nodes[i]['label'] for i in longest_path]
-
-    stats['degree_centrality'] = nx.degree_centrality(G)
-    stats['betweenness_centrality'] = nx.betweenness_centrality(G)
-    stats['closeness_centrality'] = nx.closeness_centrality(G)
-
-    return jsonify(stats)
 
 @app.route('/get_node_suggestions')
 @login_required
