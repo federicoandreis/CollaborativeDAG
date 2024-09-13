@@ -1,0 +1,38 @@
+172.31.196.142 - - [13/Sep/2024 09:43:39] "POST /register HTTP/1.1" 500 -
+172.31.196.142 - - [13/Sep/2024 09:43:44] "GET /login HTTP/1.1" 200 -
+172.31.196.142 - - [13/Sep/2024 09:43:44] "GET /static/css/style.css HTTP/1.1" 304 -
+172.31.196.142 - - [13/Sep/2024 09:43:44] "GET /static/js/main.js HTTP/1.1" 304 -
+172.31.196.142 - - [13/Sep/2024 09:43:47] "POST /login HTTP/1.1" 200 -
+172.31.196.142 - - [13/Sep/2024 09:43:47] "GET /static/css/style.css HTTP/1.1" 304 -
+172.31.196.142 - - [13/Sep/2024 09:43:47] "GET /static/js/main.js HTTP/1.1" 304 -
+172.31.196.142 - - [13/Sep/2024 09:44:10] "GET /register HTTP/1.1" 200 -
+172.31.196.142 - - [13/Sep/2024 09:44:10] "GET /static/js/main.js HTTP/1.1" 304 -
+172.31.196.142 - - [13/Sep/2024 09:44:10] "GET /static/css/style.css HTTP/1.1" 304 -
+[2024-09-13 09:44:13,517] ERROR in app: Exception on /register [POST]
+Traceback (most recent call last):
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/GraphFlowDesigner/app.py", line 47, in register
+    new_user = User(username=username, password=generate_password_hash(password))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 4, in __init__
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/state.py", line 571, in _initialize_instance
+    with util.safe_reraise():
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/state.py", line 569, in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+  File "/home/runner/GraphFlowDesigner/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/decl_base.py", line 2167, in _declarative_constructor
+    raise TypeError(
+TypeError: 'password' is an invalid keyword argument for User
+172.31.196.142 - - [13/Sep/2024 09:44:13] "POST /register HTTP/1.1" 500 -

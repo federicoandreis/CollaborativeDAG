@@ -30,7 +30,7 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
+        if user and user.check_password(password):
             login_user(user)
             return redirect(url_for('index'))
         flash('Invalid username or password')
@@ -44,7 +44,8 @@ def register():
         if User.query.filter_by(username=username).first():
             flash('Username already exists')
         else:
-            new_user = User(username=username, password=generate_password_hash(password))
+            new_user = User(username=username)
+            new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()
             flash('Registration successful')
@@ -123,5 +124,6 @@ def get_node_suggestions():
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
+        db.drop_all()  # Drop all existing tables
+        db.create_all()  # Recreate all tables with the updated schema
     app.run(host='0.0.0.0', port=5000)
