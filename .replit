@@ -28,9 +28,8 @@ args = "python app.py"
 waitForPort = 5000
 
 [deployment]
-deploymentTarget = "static"
-publicDir = "templates"
-build = ["sh", "-c", "python app.py"]
+deploymentTarget = "gce"
+run = ["sh", "-c", "python app.py"]
 
 [[ports]]
 localPort = 5000

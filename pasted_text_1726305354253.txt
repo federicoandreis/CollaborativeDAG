@@ -1,0 +1,77 @@
+New Feature Requirements:
+
+I want to add a new feature that is accessible only to admin users:
+
+Textbox for Admin Input:
+
+On the home dashboard (where the drawing area is), add a textbox where an admin can input a prompt or question related to causal links.
+
+Elicit.org API Integration:
+
+When the admin submits the prompt, the application should send this prompt to the Elicit.org API to retrieve relevant information.
+Handle any necessary authentication and API keys required by Elicit.org.
+Ensure proper error handling for API requests (e.g., timeouts, errors).
+
+Processing API Response:
+
+Parse the response from the Elicit.org API.
+Use an LLM (Language Model) if necessary to interpret the response and extract the nodes and edges needed to construct a DAG.
+The parsing logic should intelligently map the API's output to the graph structure used in the application.
+Graph Generation:
+
+Programmatically create nodes and edges in the DAG based on the API response.
+Integrate this with the existing graph visualization in the application.
+
+Display Results:
+
+Show the generated DAG to the admin user within the application interface.
+Provide options to save the generated DAG as a new project or modify it further.
+
+Access Control:
+
+Ensure that this feature is only accessible to users with admin privileges.
+Non-admin users should not see the textbox or be able to access the related routes.
+
+Existing Codebase Highlights:
+
+Authentication:
+
+Uses Flask-Login for user session management.
+The User model includes an is_admin boolean field.
+Templates:
+
+Uses Jinja2 templates with a base template base.html.
+The admin dashboard template is admin.html.
+Graph Functionality:
+
+Graphs are displayed using the Vis.js library.
+Projects are saved and retrieved using SQLAlchemy models.
+Assistance Needed:
+
+API Integration:
+
+How to integrate the Elicit.org API into the Flask app.
+Best practices for making API calls asynchronously if needed.
+LLM Integration:
+
+Guidance on using an LLM to process the API response.
+Recommendations on libraries (like OpenAI's GPT API) to parse and interpret the data.
+Frontend Updates:
+
+Modifying admin.html to include the new textbox and submit button.
+Updating JavaScript code to handle the new interactions.
+Backend Updates:
+
+Adding new routes and view functions to handle the form submission and API interaction.
+Ensuring proper security and access control.
+Error Handling and Testing:
+
+Implementing robust error handling for API failures.
+Writing tests to ensure the new feature works as intended.
+Deliverables:
+
+Code snippets for the new routes, view functions, and any necessary model changes.
+Updated templates (admin.html) with the new form elements.
+JavaScript code to handle dynamic updates to the graph visualization.
+Instructions on setting up any required API keys or configurations.
+Advice on any additional Python packages or libraries to install.
