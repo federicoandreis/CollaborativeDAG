@@ -18,6 +18,12 @@
                 <input type="file" id="import-graph" accept=".json">
                 <button id="import-graph-btn">Import Graph</button>
                 
+                {% if current_user.is_admin %}
+                <div id="admin-input" class="admin-controls">
+                    <input type="text" id="admin-prompt" placeholder="Enter causal link prompt">
+                    <button id="submit-prompt">Generate Graph</button>
+                </div>
+                {% endif %}
             </div>
         </div>
         <div class="side-panel">
@@ -46,6 +52,9 @@
                 <li>To export your graph: Click "Export Graph" to download a JSON file.</li>
                 <li>To import a graph: Click "Choose File", select a JSON file, then click "Import Graph".</li>
                 <li>To add annotations: Right-click on a node and enter the annotation text.</li>
+                {% if current_user.is_admin %}
+                <li>Admin: Enter a causal link prompt and click "Generate Graph" to create a new graph based on the Elicit.org API response.</li>
+                {% endif %}
             </ul>
         </div>
     </div>

@@ -6,6 +6,8 @@ from config import Config
 import os
 import json
 from io import BytesIO
+import requests
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -25,52 +27,45 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form['username']
+        password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for('index'))
-        flash('Invalid username or password')
+        if user is None or not user.check_password(password):
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
+        login_user(user)
+        next_page = request.args.get('next')
+        if not next_page or urlparse(next_page).netloc != '':
+            next_page = url_for('index')
+        return redirect(next_page)
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if User.query.filter_by(username=username).first():
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user is not None:
             flash('Username already exists')
-        else:
-            new_user = User(username=username)
-            new_user.set_password(password)
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Registration successful')
-            return redirect(url_for('login'))
+            return redirect(url_for('register'))
+        new_user = User(username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Congratulations, you are now a registered user!')
+        return redirect(url_for('login'))
     return render_template('register.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-@app.route('/save_project', methods=['POST'])
-@login_required
-def save_project():
-    data = request.json
-    project = Project(user_id=current_user.id, name=data['name'], content=json.dumps(data['content']))
-    db.session.add(project)
-    db.session.commit()
-    return jsonify({'success': True})
-
-@app.route('/get_projects')
-@login_required
-def get_projects():
-    projects = Project.query.filter_by(user_id=current_user.id).all()
-    return jsonify([{'id': p.id, 'name': p.name, 'content': json.loads(p.content)} for p in projects])
 
 @app.route('/admin')
 @login_required
@@ -82,53 +77,26 @@ def admin():
     projects = Project.query.all()
     return render_template('admin.html', users=users, projects=projects)
 
-@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@app.route('/save_project', methods=['POST'])
 @login_required
-def delete_user(user_id):
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    user = User.query.get(user_id)
-    if user:
-        db.session.delete(user)
-        db.session.commit()
-        flash(f'User {user.username} deleted successfully')
-    else:
-        flash('User not found')
-    return redirect(url_for('admin'))
-
-@app.route('/admin/delete_project/<int:project_id>', methods=['POST'])
-@login_required
-def delete_project(project_id):
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    project = Project.query.get(project_id)
+def save_project():
+    data = request.json
+    project = Project.query.filter_by(name=data['name'], user_id=current_user.id).first()
     if project:
-        db.session.delete(project)
-        db.session.commit()
-        flash(f'Project {project.name} deleted successfully')
+        project.content = json.dumps(data['content'])
     else:
-        flash('Project not found')
-    return redirect(url_for('admin'))
+        project = Project(name=data['name'], content=json.dumps(data['content']), user_id=current_user.id)
+        db.session.add(project)
+    db.session.commit()
+    return jsonify(success=True)
 
-@app.route('/admin/make_admin/<int:user_id>', methods=['POST'])
+@app.route('/get_projects')
 @login_required
-def make_user_admin(user_id):
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    user = User.query.get(user_id)
-    if user:
-        user.is_admin = True
-        db.session.commit()
-        flash(f'User {user.username} is now an admin')
-    else:
-        flash('User not found')
-    return redirect(url_for('admin'))
+def get_projects():
+    projects = Project.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{'id': p.id, 'name': p.name, 'content': json.loads(p.content)} for p in projects])
 
 @app.route('/get_node_suggestions')
-@login_required
 def get_node_suggestions():
     with open('node_suggestions.json', 'r') as f:
         suggestions = json.load(f)
@@ -137,104 +105,75 @@ def get_node_suggestions():
 @app.route('/export_graph', methods=['POST'])
 @login_required
 def export_graph():
-    data = request.json
-    json_data = json.dumps(data, indent=2)
-    return send_file(
-        BytesIO(json_data.encode()),
-        mimetype='application/json',
-        as_attachment=True,
-        download_name='graph_export.json'
-    )
+    graph_data = request.json
+    json_data = json.dumps(graph_data, indent=2)
+    return send_file(BytesIO(json_data.encode()), mimetype='application/json', as_attachment=True, download_name='graph_export.json')
 
 @app.route('/import_graph', methods=['POST'])
 @login_required
 def import_graph():
     if 'file' not in request.files:
-        return jsonify({'success': False, 'error': 'No file part'})
+        return jsonify(success=False, error='No file part')
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'success': False, 'error': 'No selected file'})
-    if file and file.filename.endswith('.json'):
+        return jsonify(success=False, error='No selected file')
+    if file:
         try:
-            content = json.loads(file.read().decode('utf-8'))
-            return jsonify({'success': True, 'content': content})
+            graph_data = json.load(file)
+            return jsonify(success=True, content=graph_data)
         except json.JSONDecodeError:
-            return jsonify({'success': False, 'error': 'Invalid JSON file'})
-    return jsonify({'success': False, 'error': 'Invalid file type'})
+            return jsonify(success=False, error='Invalid JSON file')
 
-@app.route('/admin/export_all_projects')
+@app.route('/admin/generate_graph', methods=['POST'])
 @login_required
-def export_all_projects():
+def generate_graph():
     if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    
-    all_projects = Project.query.all()
-    projects_data = {}
-    
-    for project in all_projects:
-        projects_data[f"{project.author.username}_{project.name}"] = json.loads(project.content)
-    
-    json_data = json.dumps(projects_data, indent=2)
-    
-    return send_file(
-        BytesIO(json_data.encode()),
-        mimetype='application/json',
-        as_attachment=True,
-        download_name='all_projects_export.json'
-    )
+        return jsonify({'success': False, 'error': 'Access denied'})
 
-@app.route('/admin/import_projects', methods=['POST'])
-@login_required
-def import_projects():
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
+    prompt = request.json.get('prompt') if request.json else None
+    if not prompt:
+        return jsonify({'success': False, 'error': 'No prompt provided'})
 
-    if 'json_file' not in request.files:
-        flash('No file part')
-        return redirect(url_for('admin'))
+    try:
+        # Call Elicit.org API
+        elicit_response = call_elicit_api(prompt)
 
-    file = request.files['json_file']
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(url_for('admin'))
+        # Process the response using OpenAI's GPT
+        processed_data = process_with_gpt(elicit_response)
 
-    if file and file.filename.endswith('.json'):
-        try:
-            content = json.loads(file.read().decode('utf-8'))
-            imported_count = 0
-            
-            # Check if it's a single project or multiple projects
-            if isinstance(content, dict) and 'nodes' in content and 'edges' in content:
-                # Single project import
-                project_name = file.filename.rsplit('.', 1)[0]
-                imported_count = import_single_project(current_user.id, project_name, content)
-            else:
-                # Multiple projects import
-                for project_name, project_data in content.items():
-                    imported_count += import_single_project(current_user.id, project_name, project_data)
-            
-            flash(f'Successfully imported {imported_count} project(s)')
-        except json.JSONDecodeError:
-            flash('Invalid JSON file')
-        except Exception as e:
-            flash(f'Error importing projects: {str(e)}')
-    else:
-        flash('Invalid file type')
+        # Generate graph data
+        graph_data = generate_graph_data(processed_data)
 
-    return redirect(url_for('admin'))
+        return jsonify({'success': True, 'graph_data': graph_data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
-def import_single_project(user_id, project_name, project_data):
-    existing_project = Project.query.filter_by(user_id=user_id, name=project_name).first()
-    if existing_project:
-        existing_project.content = json.dumps(project_data)
-        db.session.commit()
-    else:
-        new_project = Project(user_id=user_id, name=project_name, content=json.dumps(project_data))
-        db.session.add(new_project)
-        db.session.commit()
-    return 1
+def call_elicit_api(prompt):
+    # Replace with actual Elicit.org API endpoint and key
+    api_key = os.environ.get('ELICIT_API_KEY')
+    url = "https://api.elicit.org/v1/search"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {"query": prompt}
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()
+
+def process_with_gpt(elicit_response):
+    # Implement the processing logic here without using OpenAI
+    # For now, we'll return a dummy response
+    return {
+        "nodes": ["Node 1", "Node 2", "Node 3"],
+        "edges": [{"from": "Node 1", "to": "Node 2"}, {"from": "Node 2", "to": "Node 3"}]
+    }
+
+def generate_graph_data(processed_data):
+    # Convert the processed data into the format expected by vis.js
+    nodes = [{"id": i, "label": node} for i, node in enumerate(processed_data['nodes'])]
+    edges = [{"from": processed_data['nodes'].index(edge['from']), "to": processed_data['nodes'].index(edge['to'])} for edge in processed_data['edges']]
+    return {"nodes": nodes, "edges": edges}
 
 if __name__ == '__main__':
     with app.app_context():

@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const instructionsBtn = document.getElementById('instructions');
     const instructionsModal = document.getElementById('instructions-modal');
     const closeModalBtn = document.getElementsByClassName('close')[0];
+    const adminPromptInput = document.getElementById('admin-prompt');
+    const submitPromptBtn = document.getElementById('submit-prompt');
 
     let nodes = new vis.DataSet();
     let edges = new vis.DataSet();
@@ -162,6 +164,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function generateGraph() {
+        const prompt = adminPromptInput.value;
+        if (!prompt) {
+            alert('Please enter a causal link prompt');
+            return;
+        }
+
+        fetch('/admin/generate_graph', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                nodes.clear();
+                edges.clear();
+                nodes.add(data.graph_data.nodes);
+                edges.add(data.graph_data.edges);
+                alert('Graph generated successfully');
+            } else {
+                alert('Error generating graph: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
     saveProjectBtn.addEventListener('click', saveProject);
 
     addNodeBtn.addEventListener('click', () => {
@@ -218,6 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // Admin generate graph functionality
+    if (submitPromptBtn) {
+        submitPromptBtn.addEventListener('click', generateGraph);
+    }
 
     // Initial project and suggested nodes load
     loadProjects();
