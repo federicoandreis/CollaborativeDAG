@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from models import db, User, Project
 from config import Config
 import os
@@ -77,6 +78,110 @@ def admin():
     projects = Project.query.all()
     return render_template('admin.html', users=users, projects=projects)
 
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    user = User.query.get_or_404(user_id)
+    if user == current_user:
+        flash('You cannot delete your own account')
+        return redirect(url_for('admin'))
+    
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User {user.username} has been deleted')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/make_user_admin/<int:user_id>', methods=['POST'])
+@login_required
+def make_user_admin(user_id):
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    user = User.query.get_or_404(user_id)
+    user.is_admin = True
+    db.session.commit()
+    flash(f'User {user.username} has been made an admin')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/delete_project/<int:project_id>', methods=['POST'])
+@login_required
+def delete_project(project_id):
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    project = Project.query.get_or_404(project_id)
+    db.session.delete(project)
+    db.session.commit()
+    flash(f'Project {project.name} has been deleted')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/export_all_projects')
+@login_required
+def export_all_projects():
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    projects = Project.query.all()
+    projects_data = [{'name': p.name, 'content': json.loads(p.content)} for p in projects]
+    return send_file(BytesIO(json.dumps(projects_data, indent=2).encode()), mimetype='application/json', as_attachment=True, download_name='all_projects_export.json')
+
+@app.route('/admin/import_projects', methods=['POST'])
+@login_required
+def import_projects():
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    if 'json_file' not in request.files:
+        flash('No file part')
+        return redirect(url_for('admin'))
+    
+    file = request.files['json_file']
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(url_for('admin'))
+    
+    if file and file.filename.endswith('.json'):
+        try:
+            content = json.loads(file.read().decode('utf-8'))
+            imported_count = 0
+            
+            # Check if it's a single project or multiple projects
+            if isinstance(content, dict) and 'nodes' in content and 'edges' in content:
+                # Single project import
+                project_name = file.filename.rsplit('.', 1)[0]
+                imported_count = import_single_project(current_user.id, project_name, content)
+            else:
+                # Multiple projects import
+                for project_name, project_data in content.items():
+                    imported_count += import_single_project(current_user.id, project_name, project_data)
+            
+            flash(f'Successfully imported {imported_count} project(s)')
+        except json.JSONDecodeError:
+            flash('Invalid JSON file')
+        except Exception as e:
+            flash(f'Error importing projects: {str(e)}')
+    else:
+        flash('Invalid file type')
+    
+    return redirect(url_for('admin'))
+
+def import_single_project(user_id, project_name, project_data):
+    existing_project = Project.query.filter_by(user_id=user_id, name=project_name).first()
+    if existing_project:
+        existing_project.content = json.dumps(project_data)
+        db.session.commit()
+    else:
+        new_project = Project(user_id=user_id, name=project_name, content=json.dumps(project_data))
+        db.session.add(new_project)
+        db.session.commit()
+    return 1
+
 @app.route('/save_project', methods=['POST'])
 @login_required
 def save_project():
@@ -147,45 +252,72 @@ def generate_graph_data_with_gpt(prompt):
         organization='org-SltZ4uEu1VAOxCnlY8qzWH3a'
     )
     
-    # Prepare the prompt for GPT with the provided preamble
+    # Prepare the prompt for GPT with the provided preamble   
     gpt_prompt = f"""
-    You are an AI assistant and expert scientist, tasked with creating a detailed Directed Acyclic Graph (DAG) that illustrates the causal mechanisms based on established scientific evidence. Your goal is to analyze the given prompt and generate a structured representation of the specific causal links described in the scientific literature.
+    You are an AI assistant and expert scientist, tasked with creating a comprehensive and detailed Directed Acyclic Graph (DAG) that illustrates causal mechanisms based on established scientific evidence. Your goal is to analyze the given prompt and generate a structured representation of the specific causal links described in the scientific literature, including relevant context, confounders, mediators, moderators, and indirect pathways.
 
-Please follow these guidelines:
-a
-1. **Identify Key Concepts and Events:**
-   - Extract specific factors, processes, and outcomes mentioned or implied in the prompt.
-   - Use your domain knowledge to include relevant intermediate steps supported by scientific evidence.
+    Please follow these guidelines:
 
-2. **Determine Causal Relationships:**
-   - Map out how each concept or event causally influences others.
-   - Include biological, chemical, environmental, and behavioral mechanisms as appropriate.   
+    1. **Identify Key Concepts, Contextual Factors, and Confounders:**
+       - Extract specific factors, processes, outcomes, and context factors mentioned or implied in the prompt.
+       - Include potential **confounders**, **mediators**, **moderators**, and other variables that may influence the causal relationships.
+       - Use your domain knowledge to include relevant intermediate steps and contextual factors supported by scientific evidence.
 
-3. **Create a Detailed DAG Structure:**
-   - Each node should represent a specific concept, factor, or event.
-   - Each edge should represent a direct causal link from one node to another.
-   - There can be edges between nodes that are not directly related to each other, but still contribute to the overall structure. This is a critical step to ensure a coherent and complete graph.
+    2. **Determine Causal Relationships:**
+       - Map out how each concept, context factor, or event causally influences others.
+       - Include **direct and indirect pathways**, **interactions**, and complex relationships.
+       - Capture biological, chemical, environmental, social, economic, and behavioral mechanisms as appropriate.
 
-4. **Ensure Graph Acyclicity:**
-   - The graph must be acyclic with no circular dependencies.
+    3. **Create a Detailed and Comprehensive DAG Structure:**
+       - Each node should represent a specific concept, factor, event, or variable.
+       - Include nodes for confounders, mediators, moderators, and other relevant variables.
+       - Each edge should represent a direct causal link from one node to another.
+       - The DAG should reflect the **complexity of the causal relationships**, including multiple pathways and interconnected nodes, not just a simple linear sequence.
 
-5. **Provide Clear Labels and Annotations:**
-   - **Nodes:**
-     - Include 'id', 'label', and 'title' for each node.
-     - 'label' should be concise yet descriptive.
-     - 'title' should provide a brief explanation or reference to scientific evidence (e.g., "Benzo[a]pyrene in tobacco smoke causes DNA adducts leading to mutations [Smith et al., 2020]").
+    4. **Ensure Graph Acyclicity:**
+       - The graph must be acyclic with no circular dependencies.
 
-6. **Cite Sources:**
-   - When possible, reference scientific studies or reviews that support each causal link (use placeholder citations if necessary).
+    5. **Provide Clear Labels and Annotations:**
+       - **Nodes:**
+         - Include 'id', 'label', and 'title' for each node.
+         - 'label' should be concise yet descriptive.
+         - 'title' should provide a brief explanation or reference to scientific evidence (e.g., "Socioeconomic status influences smoking rates [Smith et al., 2020]").
 
-7. **Output Format:**
-   - Return the result as a JSON object with two keys: 'nodes' and 'edges'.
-   - **'nodes'**: A list of objects, each with 'id', 'label', and 'title'.
-   - **'edges'**: A list of objects, each with 'from' and 'to' keys representing connections between nodes.
+    6. **Cite Sources:**
+       - When possible, reference scientific studies or reviews that support each causal link (use placeholder citations if necessary).
 
-**Based on the following prompt, generate a detailed directed acyclic graph (DAG) structure:**
+    7. **Output Format:**
+       - Return the result as a JSON object with two keys: **'nodes'** and **'edges'**.
+       - **'nodes'**: A list of objects, each with 'id', 'label', and 'title'.
+       - **'edges'**: A list of objects, each with 'from' and 'to' keys representing connections between nodes.
 
-Prompt: {prompt}
+    **Example Format:**
+
+    
+    {{
+      "nodes": [
+        {{"id": 1, "label": "Policy X Implementation", "title": "Introduction of Policy X to address issue Y"}},
+        {{"id": 2, "label": "Resource Allocation", "title": "Policy X reallocates resources [Doe et al., 2021]"}},
+        {{"id": 3, "label": "Service Access", "title": "Changes in access to services [Smith et al., 2020]"}},
+        {{"id": 4, "label": "Outcome Y", "title": "Impact on Outcome Y"}},
+        {{"id": 5, "label": "Socioeconomic Status", "title": "Influences access and effectiveness of Policy X [Marmot, 2005]"}},
+        {{"id": 6, "label": "Geographical Location", "title": "Affects policy implementation and service availability [Lee et al., 2019]"}},
+        {{"id": 7, "label": "Cultural Factors", "title": "Modulate response to Policy X [Garcia et al., 2018]"}},
+        {{"id": 8, "label": "Public Awareness", "title": "Awareness campaigns influence effectiveness [Nguyen et al., 2021]"}}
+      ],
+      "edges": [
+        {{"from": 1, "to": 2}},
+        {{"from": 2, "to": 3}},
+        {{"from": 3, "to": 4}},
+        {{"from": 5, "to": 3}},
+        {{"from": 6, "to": 1}},
+        {{"from": 7, "to": 3}},
+        {{"from": 8, "to": 3}},
+        {{"from": 5, "to": 4}},
+        {{"from": 6, "to": 4}},
+        {{"from": 7, "to": 4}}
+      ]
+    }} 
 """
 
     # Call GPT-3.5-turbo API
