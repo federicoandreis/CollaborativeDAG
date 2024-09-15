@@ -249,7 +249,7 @@ def generate_graph():
 def generate_graph_data_with_gpt(prompt):
     client = OpenAI(
         api_key=os.environ.get('OPENAI_API_KEY'),
-        organization='org-SltZ4uEu1VAOxCnlY8qzWH3a'
+        organization=os.environ.get('OPENAI_ORGANIZATION_KEY')
     )
     
     # Prepare the prompt for GPT with the provided preamble   
