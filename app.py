@@ -6,7 +6,7 @@ from config import Config
 import os
 import json
 from io import BytesIO
-import openai
+from openai import OpenAI
 from urllib.parse import urlparse
 
 app = Flask(__name__)
@@ -142,52 +142,66 @@ def generate_graph():
         return jsonify({'success': False, 'error': str(e)})
 
 def generate_graph_data_with_gpt(prompt):
-    openai.api_key = os.environ.get('OPENAI_API_KEY')
+    client = OpenAI(
+        api_key=os.environ.get('OPENAI_API_KEY'),
+        organization='org-SltZ4uEu1VAOxCnlY8qzWH3a'
+    )
     
     # Prepare the prompt for GPT with the provided preamble
     gpt_prompt = f"""
-    You are an AI assistant tasked with creating a Directed Acyclic Graph (DAG) based on causal relationships. Your goal is to analyze the given prompt and generate a structured representation of the causal links described.
+    You are an AI assistant and expert scientist, tasked with creating a detailed Directed Acyclic Graph (DAG) that illustrates the causal mechanisms based on established scientific evidence. Your goal is to analyze the given prompt and generate a structured representation of the specific causal links described in the scientific literature.
 
-    Please follow these guidelines:
-    1. Identify the key concepts or events mentioned in the prompt.
-    2. Determine the causal relationships between these concepts or events.
-    3. Create a DAG structure where each node represents a concept or event, and each edge represents a causal link.
-    4. Ensure that the graph is acyclic, meaning there are no circular dependencies.
-    5. Provide clear and concise labels for each node.
+Please follow these guidelines:
+a
+1. **Identify Key Concepts and Events:**
+   - Extract specific factors, processes, and outcomes mentioned or implied in the prompt.
+   - Use your domain knowledge to include relevant intermediate steps supported by scientific evidence.
 
-    Based on the following prompt, generate a directed acyclic graph (DAG) structure:
-    Prompt: {prompt}
-    
-    Return the result as a JSON object with two keys: 'nodes' and 'edges'.
-    'nodes' should be a list of objects, each with 'id' and 'label' keys.
-    'edges' should be a list of objects, each with 'from' and 'to' keys representing connections between nodes.
-    
-    Example format:
-    {{
-        "nodes": [
-            {{"id": 1, "label": "Node1"}},
-            {{"id": 2, "label": "Node2"}},
-            {{"id": 3, "label": "Node3"}}
+2. **Determine Causal Relationships:**
+   - Map out how each concept or event causally influences others.
+   - Include biological, chemical, environmental, and behavioral mechanisms as appropriate.   
+
+3. **Create a Detailed DAG Structure:**
+   - Each node should represent a specific concept, factor, or event.
+   - Each edge should represent a direct causal link from one node to another.
+   - There can be edges between nodes that are not directly related to each other, but still contribute to the overall structure. This is a critical step to ensure a coherent and complete graph.
+
+4. **Ensure Graph Acyclicity:**
+   - The graph must be acyclic with no circular dependencies.
+
+5. **Provide Clear Labels and Annotations:**
+   - **Nodes:**
+     - Include 'id', 'label', and 'title' for each node.
+     - 'label' should be concise yet descriptive.
+     - 'title' should provide a brief explanation or reference to scientific evidence (e.g., "Benzo[a]pyrene in tobacco smoke causes DNA adducts leading to mutations [Smith et al., 2020]").
+
+6. **Cite Sources:**
+   - When possible, reference scientific studies or reviews that support each causal link (use placeholder citations if necessary).
+
+7. **Output Format:**
+   - Return the result as a JSON object with two keys: 'nodes' and 'edges'.
+   - **'nodes'**: A list of objects, each with 'id', 'label', and 'title'.
+   - **'edges'**: A list of objects, each with 'from' and 'to' keys representing connections between nodes.
+
+**Based on the following prompt, generate a detailed directed acyclic graph (DAG) structure:**
+
+Prompt: {prompt}
+"""
+
+    # Call GPT-3.5-turbo API
+    response = client.chat.completions.create(
+        model='gpt-3.5-turbo-0125',
+        messages=[
+            {'role': 'system', 'content': 'You are an AI assistant tasked with creating a Directed Acyclic Graph (DAG) based on causal relationships.'},
+            {'role': 'user', 'content': gpt_prompt}
         ],
-        "edges": [
-            {{"from": 1, "to": 2}},
-            {{"from": 2, "to": 3}}
-        ]
-    }}
-    """
-
-    # Call GPT-3 API
-    response = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=gpt_prompt,
         max_tokens=500,
         n=1,
-        stop=None,
-        temperature=0.7,
+        temperature=0.5,
     )
 
-    # Parse the GPT-3 response
-    gpt_output = response.choices[0].text.strip()
+    # Parse the GPT response
+    gpt_output = response.choices[0].message.content.strip()
     graph_structure = json.loads(gpt_output)
 
     return graph_structure
