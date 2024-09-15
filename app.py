@@ -262,11 +262,13 @@ def generate_graph_data_with_gpt(prompt):
        - Extract specific factors, processes, outcomes, and context factors mentioned or implied in the prompt.
        - Include potential **confounders**, **mediators**, **moderators**, and other variables that may influence the causal relationships.
        - Use your domain knowledge to include relevant intermediate steps and contextual factors supported by scientific evidence.
+       - Include as many factors as you can find that are supported by evidence.
 
     2. **Determine Causal Relationships:**
        - Map out how each concept, context factor, or event causally influences others.
        - Include **direct and indirect pathways**, **interactions**, and complex relationships.
        - Capture biological, chemical, environmental, social, economic, and behavioral mechanisms as appropriate.
+       - Always consider the existence of **intermediate steps** and **contextual factors** that may influence the causal relationships. For example, if age is a factor in the causal model, consider how it may influence the other factors and add edges as appropriate.
 
     3. **Create a Detailed and Comprehensive DAG Structure:**
        - Each node should represent a specific concept, factor, event, or variable.
@@ -289,7 +291,13 @@ def generate_graph_data_with_gpt(prompt):
     6. **Cite Sources:**
        - When possible, reference scientific studies or reviews that support each causal link (use placeholder citations if necessary) in the 'title' field.
 
-    7. **Output Format:**
+    7. **Expand DAG**
+        - Once the DAG is complete, go through all the nodes and ask yourself the same questions about causation between them. For example, if a node represents age, you might want to include edges from age to health, age to income, and age to education if relevant.
+        - Expand the DAG by adding more nodes and edges to capture the full range of causal relationships.
+        - Always make sure this is done based on evidence and not based on assumptions.
+        
+
+    8. **Output Format:**
        - Return the result as a JSON object with two keys: **'nodes'** and **'edges'**.
        - **'nodes'**: A list of objects, each with 'id', 'label', and 'title'.
        - **'edges'**: A list of objects, each with 'from' and 'to' keys representing connections between nodes.
