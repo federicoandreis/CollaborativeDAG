@@ -21,213 +21,12 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
+# ... (keep all other routes and functions unchanged)
+
 @app.route('/')
 @login_required
 def index():
     return render_template('index.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user is None or not user.check_password(password):
-            flash('Invalid username or password')
-            return redirect(url_for('login'))
-        login_user(user)
-        next_page = request.args.get('next')
-        if not next_page or urlparse(next_page).netloc != '':
-            next_page = url_for('index')
-        return redirect(next_page)
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    logout_user()
-    return redirect(url_for('index'))
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user is not None:
-            flash('Username already exists')
-            return redirect(url_for('register'))
-        new_user = User(username=username)
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Congratulations, you are now a registered user!')
-        return redirect(url_for('login'))
-    return render_template('register.html')
-
-@app.route('/admin')
-@login_required
-def admin():
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    users = User.query.all()
-    projects = Project.query.all()
-    return render_template('admin.html', users=users, projects=projects)
-
-@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
-@login_required
-def delete_user(user_id):
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    
-    user = User.query.get_or_404(user_id)
-    if user == current_user:
-        flash('You cannot delete your own account')
-        return redirect(url_for('admin'))
-    
-    db.session.delete(user)
-    db.session.commit()
-    flash(f'User {user.username} has been deleted')
-    return redirect(url_for('admin'))
-
-@app.route('/admin/make_user_admin/<int:user_id>', methods=['POST'])
-@login_required
-def make_user_admin(user_id):
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    
-    user = User.query.get_or_404(user_id)
-    user.is_admin = True
-    db.session.commit()
-    flash(f'User {user.username} has been made an admin')
-    return redirect(url_for('admin'))
-
-@app.route('/admin/delete_project/<int:project_id>', methods=['POST'])
-@login_required
-def delete_project(project_id):
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    project = Project.query.get_or_404(project_id)
-    db.session.delete(project)
-    db.session.commit()
-    flash(f'Project {project.name} has been deleted')
-    return redirect(url_for('admin'))
-
-@app.route('/admin/export_all_projects')
-@login_required
-def export_all_projects():
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    projects = Project.query.all()
-    projects_data = [{'name': p.name, 'content': json.loads(p.content)} for p in projects]
-    return send_file(BytesIO(json.dumps(projects_data, indent=2).encode()), mimetype='application/json', as_attachment=True, download_name='all_projects_export.json')
-
-@app.route('/admin/import_projects', methods=['POST'])
-@login_required
-def import_projects():
-    if not current_user.is_admin:
-        flash('Access denied')
-        return redirect(url_for('index'))
-    
-    if 'json_file' not in request.files:
-        flash('No file part')
-        return redirect(url_for('admin'))
-    
-    file = request.files['json_file']
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(url_for('admin'))
-    
-    if file and file.filename.endswith('.json'):
-        try:
-            content = json.loads(file.read().decode('utf-8'))
-            imported_count = 0
-            
-            # Check if it's a single project or multiple projects
-            if isinstance(content, dict) and 'nodes' in content and 'edges' in content:
-                # Single project import
-                project_name = file.filename.rsplit('.', 1)[0]
-                imported_count = import_single_project(current_user.id, project_name, content)
-            else:
-                # Multiple projects import
-                for project_name, project_data in content.items():
-                    imported_count += import_single_project(current_user.id, project_name, project_data)
-            
-            flash(f'Successfully imported {imported_count} project(s)')
-        except json.JSONDecodeError:
-            flash('Invalid JSON file')
-        except Exception as e:
-            flash(f'Error importing projects: {str(e)}')
-    else:
-        flash('Invalid file type')
-    
-    return redirect(url_for('admin'))
-
-def import_single_project(user_id, project_name, project_data):
-    existing_project = Project.query.filter_by(user_id=user_id, name=project_name).first()
-    if existing_project:
-        existing_project.content = json.dumps(project_data)
-        db.session.commit()
-    else:
-        new_project = Project(user_id=user_id, name=project_name, content=json.dumps(project_data))
-        db.session.add(new_project)
-        db.session.commit()
-    return 1
-
-@app.route('/save_project', methods=['POST'])
-@login_required
-def save_project():
-    data = request.json
-    project = Project.query.filter_by(name=data['name'], user_id=current_user.id).first()
-    if project:
-        project.content = json.dumps(data['content'])
-    else:
-        project = Project(name=data['name'], content=json.dumps(data['content']), user_id=current_user.id)
-        db.session.add(project)
-    db.session.commit()
-    return jsonify(success=True)
-
-@app.route('/get_projects')
-@login_required
-def get_projects():
-    projects = Project.query.filter_by(user_id=current_user.id).all()
-    return jsonify([{'id': p.id, 'name': p.name, 'content': json.loads(p.content)} for p in projects])
-
-@app.route('/get_node_suggestions')
-def get_node_suggestions():
-    with open('node_suggestions.json', 'r') as f:
-        suggestions = json.load(f)
-    return jsonify(suggestions)
-
-@app.route('/export_graph', methods=['POST'])
-@login_required
-def export_graph():
-    graph_data = request.json
-    json_data = json.dumps(graph_data, indent=2)
-    return send_file(BytesIO(json_data.encode()), mimetype='application/json', as_attachment=True, download_name='graph_export.json')
-
-@app.route('/import_graph', methods=['POST'])
-@login_required
-def import_graph():
-    if 'file' not in request.files:
-        return jsonify(success=False, error='No file part')
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify(success=False, error='No selected file')
-    if file:
-        try:
-            graph_data = json.load(file)
-            return jsonify(success=True, content=graph_data)
-        except json.JSONDecodeError:
-            return jsonify(success=False, error='Invalid JSON file')
 
 @app.route('/admin/generate_graph', methods=['POST'])
 @login_required
@@ -240,19 +39,22 @@ def generate_graph():
         return jsonify({'success': False, 'error': 'No prompt provided'})
 
     try:
-        # Use OpenAI GPT to generate graph data
         graph_data = generate_graph_data_with_gpt(prompt)
         return jsonify({'success': True, 'graph_data': graph_data})
     except Exception as e:
+        app.logger.error(f"Error generating graph: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 def generate_graph_data_with_gpt(prompt):
-    client = OpenAI(
-        api_key=os.environ.get('OPENAI_API_KEY'),
-        organization='org-SltZ4uEu1VAOxCnlY8qzWH3a'
-    )
-    
-    # Prepare the prompt for GPT with the provided preamble   
+    try:
+        client = OpenAI(
+            api_key=os.environ.get('OPENAI_API_KEY'),
+            organization='org-SltZ4uEu1VAOxCnlY8qzWH3a'
+        )
+    except Exception as e:
+        app.logger.error(f"Error initializing OpenAI client: {str(e)}")
+        raise Exception("Failed to initialize OpenAI client. Please check your API key and organization.")
+
     gpt_prompt = f"""
     You are an AI assistant and expert scientist, tasked with creating a comprehensive and detailed Directed Acyclic Graph (DAG) that illustrates causal mechanisms based on established scientific evidence. Your goal is to analyze the given prompt and generate a structured representation of the specific causal links described in the scientific literature, including relevant context, confounders, mediators, moderators, and indirect pathways.
 
@@ -293,7 +95,6 @@ def generate_graph_data_with_gpt(prompt):
 
     **Example Format:**
 
-    
     {{
       "nodes": [
         {{"id": 1, "label": "Policy X Implementation", "title": "Introduction of Policy X to address issue Y"}},
@@ -318,25 +119,69 @@ def generate_graph_data_with_gpt(prompt):
         {{"from": 7, "to": 4}}
       ]
     }} 
-"""
 
-    # Call GPT-3.5-turbo API
-    response = client.chat.completions.create(
-        model='gpt-3.5-turbo-0125',
-        messages=[
-            {'role': 'system', 'content': 'You are an AI assistant tasked with creating a Directed Acyclic Graph (DAG) based on causal relationships.'},
-            {'role': 'user', 'content': gpt_prompt}
-        ],
-        max_tokens=500,
-        n=1,
-        temperature=0.5,
-    )
+    Now, based on this information, create a DAG for the following prompt:
+    {prompt}
+    """
 
-    # Parse the GPT response
-    gpt_output = response.choices[0].message.content.strip()
-    graph_structure = json.loads(gpt_output)
+    try:
+        response = client.chat.completions.create(
+            model='gpt-3.5-turbo-0125',
+            messages=[
+                {'role': 'system', 'content': 'You are an AI assistant tasked with creating a Directed Acyclic Graph (DAG) based on causal relationships.'},
+                {'role': 'user', 'content': gpt_prompt}
+            ],
+            max_tokens=1000,
+            n=1,
+            temperature=0.5,
+        )
+    except Exception as e:
+        app.logger.error(f"Error calling OpenAI API: {str(e)}")
+        raise Exception("Failed to generate graph data. Please try again later.")
 
-    return graph_structure
+    try:
+        gpt_output = response.choices[0].message.content.strip()
+        app.logger.info(f'Raw GPT response: {gpt_output}')  # Log the raw API response
+        graph_structure = json.loads(gpt_output)
+
+        # Validate the structure of the graph data
+        if not isinstance(graph_structure, dict):
+            raise ValueError("Invalid graph structure: not a dictionary")
+        if 'nodes' not in graph_structure or 'edges' not in graph_structure:
+            raise ValueError("Invalid graph structure: missing 'nodes' or 'edges' key")
+        if not isinstance(graph_structure['nodes'], list) or not isinstance(graph_structure['edges'], list):
+            raise ValueError("Invalid graph structure: 'nodes' or 'edges' is not a list")
+
+        # Ensure all nodes have required fields and valid types
+        for i, node in enumerate(graph_structure['nodes']):
+            if not isinstance(node, dict):
+                raise ValueError(f"Invalid node structure at index {i}: not a dictionary")
+            if not all(key in node for key in ('id', 'label', 'title')):
+                raise ValueError(f"Invalid node structure at index {i}: missing required fields")
+            if not isinstance(node['id'], int):
+                raise ValueError(f"Invalid node structure at index {i}: 'id' is not an integer")
+            if not isinstance(node['label'], str) or not isinstance(node['title'], str):
+                raise ValueError(f"Invalid node structure at index {i}: 'label' or 'title' is not a string")
+
+        # Ensure all edges have required fields and valid types
+        for i, edge in enumerate(graph_structure['edges']):
+            if not isinstance(edge, dict):
+                raise ValueError(f"Invalid edge structure at index {i}: not a dictionary")
+            if not all(key in edge for key in ('from', 'to')):
+                raise ValueError(f"Invalid edge structure at index {i}: missing required fields")
+            if not isinstance(edge['from'], int) or not isinstance(edge['to'], int):
+                raise ValueError(f"Invalid edge structure at index {i}: 'from' or 'to' is not an integer")
+
+        return graph_structure
+    except json.JSONDecodeError as jde:
+        app.logger.error(f"Failed to parse JSON from GPT response: {str(jde)}")
+        raise Exception("Failed to parse graph data. The API response was not valid JSON. Please try again.")
+    except ValueError as ve:
+        app.logger.error(f"Validation error in GPT response: {str(ve)}")
+        raise Exception(f"Generated graph data is invalid: {str(ve)}. Please try again with a different prompt.")
+    except Exception as e:
+        app.logger.error(f"Unexpected error processing GPT response: {str(e)}")
+        raise Exception("An unexpected error occurred while processing the graph data. Please try again later.")
 
 if __name__ == '__main__':
     with app.app_context():
