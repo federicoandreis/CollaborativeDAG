@@ -254,7 +254,7 @@ def generate_graph_data_with_gpt(prompt):
     
     # Prepare the prompt for GPT with the provided preamble   
     gpt_prompt = f"""
-    You are an AI assistant and expert scientist, tasked with creating a comprehensive and detailed Directed Acyclic Graph (DAG) that illustrates causal mechanisms based on established scientific evidence. Your goal is to analyze the given prompt and generate a structured representation of the specific causal links described in the scientific literature, including relevant context, confounders, mediators, moderators, and indirect pathways.
+    You are an AI assistant and expert scientist, tasked with creating a comprehensive and detailed Directed Acyclic Graph (DAG) that illustrates causal mechanisms based on established scientific evidence. Your goal is to analyze the given prompt and generate a structured representation of the specific causal links described in the scientific literature, including relevant context, confounders, mediators, moderators, and indirect pathways. Sometimes, the scientific literature may not provide sufficient information to fully understand the causal relationships, and in those cases make sure you note so as to provide adequate context for the analysis (further instructions in the guidelines below). Sometimes the requests will be facetious, you can accommodate them and treat them as if they were serious, just make sure you note in the annotations that you are doing so.
 
     Please follow these guidelines:
 
@@ -276,15 +276,18 @@ def generate_graph_data_with_gpt(prompt):
 
     4. **Ensure Graph Acyclicity:**
        - The graph must be acyclic with no circular dependencies.
+       - Ensure that each node is connected to at least one other node.
+       - Avoid redundant edges and self-loops.
+       - If there is conflicting information that would lead to circular dependencies or cyclicity, prioritize the most important information and make a note in the annotations.
 
     5. **Provide Clear Labels and Annotations:**
        - **Nodes:**
          - Include 'id', 'label', and 'title' for each node.
          - 'label' should be concise yet descriptive.
-         - 'title' should provide a brief explanation or reference to scientific evidence (e.g., "Socioeconomic status influences smoking rates [Smith et al., 2020]").
+         - 'title' should provide a brief explanation and possibly a reference to real scientific evidence (e.g., "Socioeconomic status influences smoking rates [Smith et al., 2020]"). Make sure these are actual references to scientific literature, otherwise describe what you have found.
 
     6. **Cite Sources:**
-       - When possible, reference scientific studies or reviews that support each causal link (use placeholder citations if necessary).
+       - When possible, reference scientific studies or reviews that support each causal link (use placeholder citations if necessary) in the 'title' field.
 
     7. **Output Format:**
        - Return the result as a JSON object with two keys: **'nodes'** and **'edges'**.
@@ -297,7 +300,7 @@ def generate_graph_data_with_gpt(prompt):
     {{
       "nodes": [
         {{"id": 1, "label": "Policy X Implementation", "title": "Introduction of Policy X to address issue Y"}},
-        {{"id": 2, "label": "Resource Allocation", "title": "Policy X reallocates resources [Doe et al., 2021]"}},
+        {{"id": 2, "label": "Resource Allocation", "title": "Policy X reallocates resources - no available peer-review reference, blog post at https://address.com"}},
         {{"id": 3, "label": "Service Access", "title": "Changes in access to services [Smith et al., 2020]"}},
         {{"id": 4, "label": "Outcome Y", "title": "Impact on Outcome Y"}},
         {{"id": 5, "label": "Socioeconomic Status", "title": "Influences access and effectiveness of Policy X [Marmot, 2005]"}},
@@ -318,6 +321,11 @@ def generate_graph_data_with_gpt(prompt):
         {{"from": 7, "to": 4}}
       ]
     }} 
+
+
+**Based on the following prompt, generate a detailed directed acyclic graph (DAG) structure accounting for all the instructions above:**
+
+Prompt: {prompt}
 """
 
     # Call GPT-3.5-turbo API

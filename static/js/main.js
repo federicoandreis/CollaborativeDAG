@@ -244,11 +244,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const annotation = prompt('Enter annotation:');
             if (annotation) {
                 const node = nodes.get(nodeId);
-                node.title = annotation;
+                const existingAnnotation = node.title || '';
+                // Append the new annotation to the existing one
+                node.title = existingAnnotation
+                    ? existingAnnotation + '\n• ' + annotation
+                    : '• ' + annotation;
                 nodes.update(node);
             }
         }
     });
+
 
     // Admin generate graph functionality
     if (submitPromptBtn) {

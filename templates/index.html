@@ -53,7 +53,7 @@
                 <li>To import a graph: Click "Choose File", select a JSON file, then click "Import Graph".</li>
                 <li>To add annotations: Right-click on a node and enter the annotation text.</li>
                 {% if current_user.is_admin %}
-                <li>Admin: Enter a causal link prompt and click "Generate Graph" to create a new graph based on the LLM response.</li>
+                <li>Assisted DAG creation: Enter a causal link prompt and click "Generate Graph" to generate an annotated graph (currently uses gpt-3.5-turbo-0125).</li>
                 {% endif %}
             </ul>
         </div>
