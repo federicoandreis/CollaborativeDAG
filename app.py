@@ -6,7 +6,7 @@ from config import Config
 import os
 import json
 from io import BytesIO
-import requests
+import openai
 from urllib.parse import urlparse
 
 app = Flask(__name__)
@@ -135,45 +135,62 @@ def generate_graph():
         return jsonify({'success': False, 'error': 'No prompt provided'})
 
     try:
-        # Call Elicit.org API
-        elicit_response = call_elicit_api(prompt)
-
-        # Process the response using OpenAI's GPT
-        processed_data = process_with_gpt(elicit_response)
-
-        # Generate graph data
-        graph_data = generate_graph_data(processed_data)
-
+        # Use OpenAI GPT to generate graph data
+        graph_data = generate_graph_data_with_gpt(prompt)
         return jsonify({'success': True, 'graph_data': graph_data})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-def call_elicit_api(prompt):
-    # Replace with actual Elicit.org API endpoint and key
-    api_key = os.environ.get('ELICIT_API_KEY')
-    url = "https://api.elicit.org/v1/search"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    data = {"query": prompt}
-    response = requests.post(url, headers=headers, json=data)
-    response.raise_for_status()
-    return response.json()
+def generate_graph_data_with_gpt(prompt):
+    openai.api_key = os.environ.get('OPENAI_API_KEY')
+    
+    # Prepare the prompt for GPT with the provided preamble
+    gpt_prompt = f"""
+    You are an AI assistant tasked with creating a Directed Acyclic Graph (DAG) based on causal relationships. Your goal is to analyze the given prompt and generate a structured representation of the causal links described.
 
-def process_with_gpt(elicit_response):
-    # Implement the processing logic here without using OpenAI
-    # For now, we'll return a dummy response
-    return {
-        "nodes": ["Node 1", "Node 2", "Node 3"],
-        "edges": [{"from": "Node 1", "to": "Node 2"}, {"from": "Node 2", "to": "Node 3"}]
-    }
+    Please follow these guidelines:
+    1. Identify the key concepts or events mentioned in the prompt.
+    2. Determine the causal relationships between these concepts or events.
+    3. Create a DAG structure where each node represents a concept or event, and each edge represents a causal link.
+    4. Ensure that the graph is acyclic, meaning there are no circular dependencies.
+    5. Provide clear and concise labels for each node.
 
-def generate_graph_data(processed_data):
-    # Convert the processed data into the format expected by vis.js
-    nodes = [{"id": i, "label": node} for i, node in enumerate(processed_data['nodes'])]
-    edges = [{"from": processed_data['nodes'].index(edge['from']), "to": processed_data['nodes'].index(edge['to'])} for edge in processed_data['edges']]
-    return {"nodes": nodes, "edges": edges}
+    Based on the following prompt, generate a directed acyclic graph (DAG) structure:
+    Prompt: {prompt}
+    
+    Return the result as a JSON object with two keys: 'nodes' and 'edges'.
+    'nodes' should be a list of objects, each with 'id' and 'label' keys.
+    'edges' should be a list of objects, each with 'from' and 'to' keys representing connections between nodes.
+    
+    Example format:
+    {{
+        "nodes": [
+            {{"id": 1, "label": "Node1"}},
+            {{"id": 2, "label": "Node2"}},
+            {{"id": 3, "label": "Node3"}}
+        ],
+        "edges": [
+            {{"from": 1, "to": 2}},
+            {{"from": 2, "to": 3}}
+        ]
+    }}
+    """
+
+    # Call GPT-3 API
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt=gpt_prompt,
+        max_tokens=500,
+        n=1,
+        stop=None,
+        temperature=0.7,
+    )
+
+    # Parse the GPT-3 response
+    gpt_output = response.choices[0].text.strip()
+    graph_structure = json.loads(gpt_output)
+
+    return graph_structure
 
 if __name__ == '__main__':
     with app.app_context():
